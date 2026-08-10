@@ -1,0 +1,23 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+    }
+
+    function isValidImage() {
+      return request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // Post covers, promo thumbnails and station artwork are public content.
+    match /posts/{file}   { allow read: if true; allow write: if isAdmin() && isValidImage(); }
+    match /promos/{file}  { allow read: if true; allow write: if isAdmin() && isValidImage(); }
+    match /station/{file} { allow read: if true; allow write: if isAdmin() && isValidImage(); }
+
+    // Nothing else is writable, and nothing else is readable.
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}

@@ -1,0 +1,29 @@
+@import 'tailwindcss';
+
+/* Mirrors Colors in src/theme/index.ts — dark red, white, black. */
+@theme {
+  --color-station: #b71c1c;
+  --color-station-bright: #e53935;
+  --color-canvas: #0a0a0b;
+  --color-surface: #151518;
+  --color-muted: #9a9aa2;
+  --color-live: #e53935;
+  --color-warn: #ff8a80;
+  --color-hairline: rgba(255, 255, 255, 0.10);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: white;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+}

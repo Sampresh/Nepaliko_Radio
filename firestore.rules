@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Public content: world-readable, admin-only writes.
+    match /config/{doc}   { allow read: if true; allow write: if isAdmin(); }
+    match /links/{doc}    { allow read: if true; allow write: if isAdmin(); }
+    match /promos/{doc}   { allow read: if true; allow write: if isAdmin(); }
+    match /banners/{doc}  { allow read: if true; allow write: if isAdmin(); }
+
+    // Posts: only published ones are public.
+    // NOTE: list queries MUST include where('isPublished','==',true) or the
+    // whole query is rejected — rules filter queries, they do not filter rows.
+    match /posts/{postId} {
+      allow read:  if resource.data.isPublished == true || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Listener requests: create-only, validated, never publicly readable.
+    match /requests/{requestId} {
+      allow read: if isAdmin();
+      allow create: if
+        request.resource.data.keys().hasOnly(
+          ['type','name','message','contact','status','createdAt','deviceHash'])
+        && request.resource.data.type in ['song','shoutout','feedback']
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.message.size() <= 500
+        && request.resource.data.status == 'new'
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if isAdmin();
+    }
+
+    // Audit trail of sent pushes. Written by the sendPush function using the
+    // Admin SDK, which bypasses rules — so no client write path is needed.
+    match /pushLog/{entry} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // Push tokens. Anyone may register their own device and set preferences,
+    // but nobody may read the roster — it is a list of contactable devices.
+    // The document id is the push token itself, so a client can only ever
+    // address its own row.
+    match /devices/{token} {
+      allow read: if false;
+      allow create, update: if
+        request.resource.data.keys().hasOnly(
+          ['token','platform','news','liveAlerts','updatedAt'])
+        && request.resource.data.token == token
+        && request.resource.data.platform in ['ios','android']
+        && request.resource.data.news is bool
+        && request.resource.data.liveAlerts is bool;
+      allow delete: if false;
+    }
+
+    // Admin roster: readable by admins, writable only from the Firebase Console.
+    match /admins/{uid} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+  }
+}
