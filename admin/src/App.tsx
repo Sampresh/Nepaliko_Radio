@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Spinner } from '@/components/ui';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { DashboardPage } from '@/pages/Dashboard';
 import { LinksPage } from '@/pages/Links';
 import { LoginPage } from '@/pages/Login';
 import { PostEditorPage } from '@/pages/PostEditor';
@@ -26,7 +27,8 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<Protected />}>
-            <Route index element={<StreamConfigPage />} />
+            <Route index element={<DashboardPage />} />
+            <Route path="stream" element={<StreamConfigPage />} />
             <Route path="posts" element={<PostsPage />} />
             <Route path="posts/:id" element={<PostEditorPage />} />
             <Route path="promos" element={<PromosPage />} />

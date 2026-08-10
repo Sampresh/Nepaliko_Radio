@@ -86,3 +86,10 @@ export const MinTouchTarget = 44;
 
 /** Height reserved for the mini player so scroll views can clear it. */
 export const MiniPlayerHeight = 64;
+
+/**
+ * Bottom padding a scrolling screen needs so its last row is not hidden behind
+ * the mini player and tab bar, which float over the scene rather than insetting
+ * it. Mini player (64 + 8 margin) + tab bar (~64) + breathing room.
+ */
+export const ScrollBottomInset = MiniPlayerHeight + 8 + 64 + Spacing.lg;

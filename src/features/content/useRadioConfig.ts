@@ -33,6 +33,26 @@ export interface RadioConfigState {
  */
 const FALLBACK_DELAY_MS = 2500;
 
+/** Optional fields the admin panel writes as "" when left blank. */
+const OPTIONAL_TEXT = ['logoUrl', 'backupStreamUrl', 'offlineMessage'] as const;
+
+/**
+ * Turns blank optional strings into `undefined`.
+ *
+ * The admin form posts "" for anything left empty, and "" is not the same as
+ * absent to the code downstream. Two concrete failures this prevents:
+ * `artworkUrl: ""` is rejected by the native lock-screen call because it cannot
+ * cast to a URL, and `offlineMessage: ""` defeats `?? 'default'`, which only
+ * substitutes for null and undefined — leaving listeners a blank message.
+ */
+function normalise(config: RadioConfig): RadioConfig {
+  const next = { ...config };
+  for (const key of OPTIONAL_TEXT) {
+    if (typeof next[key] === 'string' && next[key]?.trim() === '') delete next[key];
+  }
+  return next;
+}
+
 export function useRadioConfig(): RadioConfigState {
   const [state, setState] = useState<RadioConfigState>({
     config: null,
@@ -57,7 +77,11 @@ export function useRadioConfig(): RadioConfigState {
     AsyncStorage.getItem(CACHE_KEY)
       .then((raw) => {
         if (cancelled || gotServerData || !raw) return;
-        setState({ config: JSON.parse(raw) as RadioConfig, status: 'ready', source: 'cache' });
+        setState({
+          config: normalise(JSON.parse(raw) as RadioConfig),
+          status: 'ready',
+          source: 'cache',
+        });
       })
       .catch(() => {
         // A broken cache is not worth surfacing; the listener is the real path.
@@ -75,7 +99,7 @@ export function useRadioConfig(): RadioConfigState {
         }
 
         const { updatedAt, ...rest } = snapshot.data() as RadioConfig;
-        const config = rest as RadioConfig;
+        const config = normalise(rest as RadioConfig);
 
         setState({ config, status: 'ready', source: 'live' });
         // `updatedAt` is a Timestamp and does not survive JSON; drop it.

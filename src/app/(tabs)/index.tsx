@@ -11,7 +11,7 @@ import { StationArtwork } from '@/components/player/StationArtwork';
 import { Waveform } from '@/components/player/Waveform';
 import { AppText } from '@/components/ui/Text';
 import { usePlayer } from '@/features/player/PlayerProvider';
-import { Colors, MiniPlayerHeight, Radius, Spacing } from '@/theme';
+import { Colors, Radius, ScrollBottomInset, Spacing } from '@/theme';
 
 export default function ListenScreen() {
   const {
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   scroll: {
-    paddingBottom: MiniPlayerHeight + Spacing.xl,
+    paddingBottom: ScrollBottomInset,
   },
   stage: {
     alignItems: 'center',

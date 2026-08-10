@@ -12,7 +12,6 @@ export interface RadioConfig {
   /** Master kill-switch. When false the player refuses to play. */
   isLive: boolean;
   offlineMessage?: string;
-  minAppVersion?: string;
   updatedAt?: Timestamp;
 }
 

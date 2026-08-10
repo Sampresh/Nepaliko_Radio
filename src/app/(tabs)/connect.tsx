@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/States';
 import { AppText } from '@/components/ui/Text';
 import { useLinks } from '@/features/content/useLinks';
-import { Colors, MiniPlayerHeight, Radius, Spacing } from '@/theme';
+import { Colors, Radius, ScrollBottomInset, Spacing } from '@/theme';
 
 export default function ConnectScreen() {
   const { data: links, isLoading, isError, refetch } = useLinks();
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.sm,
-    paddingBottom: MiniPlayerHeight + Spacing.xl,
+    paddingBottom: ScrollBottomInset,
     gap: Spacing.xl,
   },
   section: {

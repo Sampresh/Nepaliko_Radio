@@ -80,7 +80,12 @@ export function RequestForm() {
                   <AppText
                     variant="small"
                     weight={selected ? 'semibold' : 'regular'}
-                    color={selected ? Colors.background : Colors.textSecondary}>
+                    // White on the dark-red fill. The old value was the page
+                    // background, which left near-black text on dark red.
+                    color={selected ? Colors.textPrimary : Colors.textSecondary}
+                    // A wrapped label made this chip twice the height of its
+                    // neighbours and broke the row.
+                    numberOfLines={1}>
                     {option.label}
                   </AppText>
                 </Pressable>
@@ -204,19 +209,23 @@ const styles = StyleSheet.create({
   },
   typeRow: {
     flexDirection: 'row',
+    alignItems: 'stretch',
     gap: Spacing.sm,
   },
   typeChip: {
     flex: 1,
-    minHeight: MinTouchTarget,
+    height: MinTouchTarget,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
     borderRadius: Radius.full,
     backgroundColor: Colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.border,
   },
   typeChipActive: {
     backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
   },
   field: {
     gap: Spacing.xs,

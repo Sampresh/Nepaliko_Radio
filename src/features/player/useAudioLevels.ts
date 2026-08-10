@@ -121,7 +121,13 @@ export function useAudioLevels(player: AudioPlayer, active: boolean): AudioLevel
     return () => {
       cancelled = true;
       subscription?.remove();
-      player.setAudioSamplingEnabled(false);
+      // Races the player's own release on reload/teardown; a dead shared object
+      // rejects the call. Nothing to disable at that point anyway.
+      try {
+        player.setAudioSamplingEnabled(false);
+      } catch {
+        // Player already released.
+      }
       history.current.fill(0);
       meanLevel.current = 0;
       lastFrameAt.current = 0;

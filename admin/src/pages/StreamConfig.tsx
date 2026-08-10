@@ -14,7 +14,6 @@ const EMPTY: RadioConfig = {
   logoUrl: '',
   isLive: true,
   offlineMessage: '',
-  minAppVersion: '',
 };
 
 /**

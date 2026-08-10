@@ -7,7 +7,7 @@ import { PostCardSkeleton } from '@/components/ui/Skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/States';
 import { AppText } from '@/components/ui/Text';
 import { usePinnedPosts, usePosts } from '@/features/content/usePosts';
-import { Colors, MiniPlayerHeight, Spacing } from '@/theme';
+import { Colors, ScrollBottomInset, Spacing } from '@/theme';
 import type { Post } from '@/types/firestore';
 
 export default function NewsScreen() {
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.sm,
-    paddingBottom: MiniPlayerHeight + Spacing.xl,
+    paddingBottom: ScrollBottomInset,
     flexGrow: 1,
   },
   separator: {

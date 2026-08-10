@@ -4,7 +4,8 @@ import { Button } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 
 const NAV = [
-  { to: '/', label: 'Stream', end: true },
+  { to: '/', label: 'Dashboard', end: true },
+  { to: '/stream', label: 'Stream' },
   { to: '/posts', label: 'News' },
   { to: '/promos', label: 'Promos' },
   { to: '/links', label: 'Links' },

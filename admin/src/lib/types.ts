@@ -13,7 +13,6 @@ export interface RadioConfig {
   logoUrl?: string;
   isLive: boolean;
   offlineMessage?: string;
-  minAppVersion?: string;
   updatedAt?: Timestamp;
 }
 

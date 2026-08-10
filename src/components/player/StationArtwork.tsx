@@ -11,8 +11,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
-import { AppText } from '@/components/ui/Text';
-import { stationInitials } from '@/config/station';
+import { STATION_LOGO } from '@/config/station';
 import { Colors, Radius } from '@/theme';
 
 const SIZE = 244;
@@ -92,21 +91,15 @@ export function StationArtwork({ logoUrl, stationName, active, levels }: Props) 
       <Animated.View style={[styles.counterRing, counterStyle]} pointerEvents="none" />
 
       <View style={styles.logoWrap}>
-        {logoUrl ? (
-          <Image
-            source={{ uri: logoUrl }}
-            style={styles.logo}
-            contentFit="cover"
-            transition={260}
-            accessibilityLabel={`${stationName} logo`}
-          />
-        ) : (
-          <View style={styles.monogram} accessibilityLabel={`${stationName} logo`}>
-            <AppText weight="bold" style={styles.monogramText}>
-              {stationInitials(stationName)}
-            </AppText>
-          </View>
-        )}
+        <Image
+          source={logoUrl ? { uri: logoUrl } : STATION_LOGO}
+          style={styles.logo}
+          // `contain`, because the station lockup is far wider than it is tall.
+          // `cover` would crop the first and last characters off the wordmark.
+          contentFit="contain"
+          transition={260}
+          accessibilityLabel={`${stationName} logo`}
+        />
       </View>
     </View>
   );
@@ -161,18 +154,7 @@ const styles = StyleSheet.create({
   logo: {
     width: '100%',
     height: '100%',
-  },
-  monogram: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.primary,
-  },
-  monogramText: {
-    fontSize: 76,
-    lineHeight: 90,
-    letterSpacing: 2,
-    color: Colors.textPrimary,
+    // Keeps the wordmark clear of the circle's curve on both sides.
+    paddingHorizontal: 14,
   },
 });

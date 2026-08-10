@@ -124,12 +124,15 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
     // Registering for lock screen controls is what keeps playback alive in the
     // background — it is not just cosmetic.
+    // `artworkUrl` is cast to a java.net.URL natively, which rejects "" outright
+    // and takes the whole call down with it — so omit the key unless it has a
+    // real value, rather than passing an empty string through.
     player.setActiveForLockScreen(
       true,
       {
         title: config.stationName,
         artist: config.tagline,
-        artworkUrl: config.logoUrl,
+        ...(config.logoUrl ? { artworkUrl: config.logoUrl } : {}),
       },
       { isLiveStream: true }
     );

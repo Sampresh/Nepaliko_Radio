@@ -21,3 +21,11 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+/**
+ * The SDK default is two minutes of retries. When Storage has not been set up on
+ * the project every call burns that full window before failing, which reads as a
+ * hung page rather than a misconfiguration. Fail fast enough to show a message.
+ */
+storage.maxOperationRetryTime = 10_000;
+storage.maxUploadRetryTime = 30_000;

@@ -24,12 +24,21 @@ export const STATION_STREAM_URL = 'http://streaming.webhostnepal.com:9888/';
  * provisioned. (The previous dev-only override could not do either.)
  */
 /**
- * Placeholder artwork until a real logo is uploaded via the admin panel.
+ * The station wordmark, bundled with the app.
  *
- * Drawn as a monogram rather than shipped as an image file: it stays inside the
- * red/white/black identity at any size, needs no asset, and reads clearly as
- * "logo not set yet" instead of looking like a logo someone chose.
- * `config/radio.logoUrl` replaces it the moment it is set.
+ * A transparent PNG so it sits on the dark player without a white plate, and a
+ * wide 2.6:1 lockup — it must be rendered with `contentFit="contain"`, never
+ * `cover`, which would crop the outer characters clean off.
+ *
+ * Bundled rather than fetched so the player is never blank on a cold start and
+ * works with no network at all. `config/radio.logoUrl` from the admin panel
+ * still wins whenever it is set.
+ */
+export const STATION_LOGO = require('../../assets/images/station-logo.png');
+
+/**
+ * Fallback for square slots too small for the wordmark, like the mini player,
+ * where a 2.6:1 lockup would shrink to an unreadable smudge.
  */
 export function stationInitials(stationName: string): string {
   const words = stationName.trim().split(/\s+/).filter(Boolean);

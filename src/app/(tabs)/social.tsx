@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/States';
 import { AppText } from '@/components/ui/Text';
 import { usePromos } from '@/features/content/usePromos';
-import { Colors, MiniPlayerHeight, MinTouchTarget, Radius, Spacing } from '@/theme';
+import { Colors, MinTouchTarget, Radius, ScrollBottomInset, Spacing } from '@/theme';
 import type { Promo, PromoPlatform } from '@/types/firestore';
 
 const PLATFORM: Record<PromoPlatform, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
@@ -38,8 +38,8 @@ export default function SocialScreen() {
       ) : isLoading ? (
         <View style={styles.loading}>
           <Skeleton height={92} radius={Radius.card} />
-          <Skeleton height={180} radius={Radius.card} />
-          <Skeleton height={180} radius={Radius.card} />
+          <Skeleton height={88} radius={Radius.card} />
+          <Skeleton height={88} radius={Radius.card} />
         </View>
       ) : !promos?.length ? (
         <EmptyState
@@ -74,7 +74,7 @@ export default function SocialScreen() {
               </AppText>
               <View style={styles.videoGrid}>
                 {videos.map((promo) => (
-                  <PromoCard key={promo.id} promo={promo} full />
+                  <PromoCard key={promo.id} promo={promo} />
                 ))}
               </View>
             </View>
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   content: {
-    paddingBottom: MiniPlayerHeight + Spacing.xl,
+    paddingBottom: ScrollBottomInset,
     gap: Spacing.xxl,
   },
   block: {

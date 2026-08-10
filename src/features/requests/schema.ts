@@ -28,7 +28,7 @@ export const requestSchema = z.object({
 export type RequestInput = z.infer<typeof requestSchema>;
 
 export const REQUEST_TYPES: { value: RequestInput['type']; label: string }[] = [
-  { value: 'song', label: 'Song request' },
+  { value: 'song', label: 'Song' },
   { value: 'shoutout', label: 'Shout-out' },
   { value: 'feedback', label: 'Feedback' },
 ];
