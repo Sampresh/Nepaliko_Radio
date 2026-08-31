@@ -7,6 +7,17 @@ export interface PlayerPrefs {
   autoplay: boolean;
 }
 
+/**
+ * Autoplay is on by default.
+ *
+ * This is a radio app: opening it is the request to listen, and a tap between
+ * that and audio is friction with nothing behind it. Anyone who disagrees has
+ * one toggle in Settings, and their choice persists across restarts.
+ *
+ * "On launch" means a cold start only. Returning from the background never
+ * restarts the stream — if the listener paused before switching away, it stays
+ * paused, which is what the once-only latch in `PlayerProvider` enforces.
+ */
 export const DEFAULT_PLAYER_PREFS: PlayerPrefs = { autoplay: true };
 
 export async function loadPlayerPrefs(): Promise<PlayerPrefs> {

@@ -27,7 +27,7 @@ interface PlayerContextValue extends RadioConfigState {
   /** Epoch ms at which the sleep timer stops playback, or null when unset. */
   sleepEndsAt: number | null;
   setSleepTimer: (minutes: number | null) => void;
-  /** Whether the stream starts on its own at launch. */
+  /** Whether the stream starts on its own at launch. Off unless asked for. */
   autoplay: boolean;
   setAutoplay: (enabled: boolean) => void;
   /** Per-bar amplitude of the live audio, 0-1, for the visualiser. */

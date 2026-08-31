@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
@@ -12,11 +13,22 @@ import {
   requestSchema,
   type RequestInput,
 } from '@/features/requests/schema';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { useSubmitRequest } from '@/features/requests/useSubmitRequest';
 import { Colors, MinTouchTarget, Radius, Spacing } from '@/theme';
 
-export function RequestForm() {
+/**
+ * `locked` renders the real form, inert.
+ *
+ * A greyed-out version of the thing you want is a far better explanation than
+ * an empty space where it should be, so the signed-out state shows exactly what
+ * signing in unlocks. `pointerEvents="none"` on the wrapper is what makes it
+ * genuinely unreachable — a `TextInput` left focusable would still take the
+ * keyboard on tab or an accessibility gesture.
+ */
+export function RequestForm({ locked = false }: { locked?: boolean }) {
   const { submit, reset: resetSubmission, state, error } = useSubmitRequest();
+  const { user, profile } = useAuth();
 
   const {
     control,
@@ -28,6 +40,15 @@ export function RequestForm() {
     resolver: zodResolver(requestSchema),
     defaultValues: { type: 'song', name: '', message: '', contact: '' },
   });
+
+  // Pre-fill the name once the profile lands, but never overwrite something the
+  // listener has already typed — `reset` here would discard their edit.
+  const signedInName = profile?.name ?? user?.displayName ?? '';
+  const currentName = watch('name');
+  useEffect(() => {
+    if (!signedInName || currentName) return;
+    reset((values) => ({ ...values, name: signedInName }), { keepDirtyValues: true });
+  }, [signedInName, currentName, reset]);
 
   const message = watch('message') ?? '';
 
@@ -62,7 +83,14 @@ export function RequestForm() {
   }
 
   return (
-    <View style={styles.form}>
+    <View
+      style={[styles.form, locked && styles.locked]}
+      pointerEvents={locked ? 'none' : 'auto'}
+      // Hidden from screen readers while locked: the card above it is the thing
+      // to interact with, and announcing a form that cannot be filled in is
+      // worse than not announcing it.
+      accessibilityElementsHidden={locked}
+      importantForAccessibility={locked ? 'no-hide-descendants' : 'auto'}>
       <Controller
         control={control}
         name="type"
@@ -204,6 +232,9 @@ export function RequestForm() {
 }
 
 const styles = StyleSheet.create({
+  locked: {
+    opacity: 0.45,
+  },
   form: {
     gap: Spacing.lg,
   },

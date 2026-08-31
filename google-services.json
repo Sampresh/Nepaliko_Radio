@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "978827989375",
+    "project_id": "nepaliko-radio",
+    "storage_bucket": "nepaliko-radio.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:978827989375:android:edab17fe59cc6e75324a4a",
+        "android_client_info": {
+          "package_name": "com.sampres.nepalikoradio"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "978827989375-uemj9r6qpl54ql8o12573rl37110vb8p.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJQmPC6Bv8sTlXf1Vy9hnCa4swpSmvbz0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "978827989375-uemj9r6qpl54ql8o12573rl37110vb8p.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

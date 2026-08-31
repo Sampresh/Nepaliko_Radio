@@ -85,12 +85,27 @@ export function RequestsPage() {
         {visible.map((request) => (
           <Card key={request.id} className="space-y-3">
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-medium text-white">{request.name}</p>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-white">{request.name}</p>
+                  {/*
+                    Requests now require an account, so the name is attached to
+                    one rather than typed by anyone. Rows without a uid predate
+                    the gate and are flagged so nobody reads them as verified.
+                  */}
+                  {request.uid ? (
+                    <Badge tone="live">account</Badge>
+                  ) : (
+                    <Badge tone="neutral">anonymous</Badge>
+                  )}
+                </div>
                 <p className="text-xs text-muted">
                   {TYPE_LABEL[request.type] ?? request.type}
                   {request.createdAt && ` · ${request.createdAt.toDate().toLocaleString()}`}
                 </p>
+                {request.uid && (
+                  <p className="truncate font-mono text-xs text-muted">{request.uid}</p>
+                )}
               </div>
               <Badge tone={request.status === 'new' ? 'live' : 'neutral'}>{request.status}</Badge>
             </div>

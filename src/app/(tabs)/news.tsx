@@ -77,8 +77,8 @@ export default function NewsScreen() {
         ListEmptyComponent={
           <EmptyState
             icon="newspaper-outline"
-            title="Nothing here yet"
-            message="Station news and updates will appear here."
+            title="No updates yet."
+            message="Links the station shares will appear here."
           />
         }
         ListFooterComponent={

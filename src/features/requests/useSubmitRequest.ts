@@ -4,7 +4,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useCallback, useState } from 'react';
 
 import type { RequestInput } from '@/features/requests/schema';
-import { db } from '@/services/firebase';
+import { auth, db } from '@/services/firebase';
 
 const DEVICE_KEY = 'nepaliko:deviceHash';
 const SENT_KEY = 'nepaliko:requestTimestamps';
@@ -51,6 +51,16 @@ export function useSubmitRequest() {
     setState('submitting');
 
     try {
+      // Requests carry a name to the studio, so they carry an account too. The
+      // rule enforces this as well — this check exists to give a usable message
+      // rather than a permission-denied.
+      const uid = auth.currentUser?.uid;
+      if (!uid) {
+        setError('Sign in to send a request.');
+        setState('error');
+        return false;
+      }
+
       if ((await recentSubmissionCount()) >= MAX_PER_HOUR) {
         setError('You have sent a few messages already. Please try again later.');
         setState('error');
@@ -66,6 +76,7 @@ export function useSubmitRequest() {
         status: 'new',
         createdAt: serverTimestamp(),
         deviceHash: await getDeviceHash(),
+        uid,
       });
 
       await recordSubmission();

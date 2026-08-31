@@ -11,6 +11,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
+import { useNotifications } from '@/features/notifications/useNotifications';
 import { PlayerProvider } from '@/features/player/PlayerProvider';
 import { initMonitoring } from '@/services/monitoring';
 import { PERSIST_MAX_AGE, persister, queryClient } from '@/services/queryClient';
@@ -31,6 +33,48 @@ const theme = {
   },
 };
 
+/**
+ * The navigator.
+ *
+ * There is deliberately no auth gate. Playing a public radio stream does not
+ * need an account, and Apple's guideline 5.1.1(v) forbids requiring one for
+ * features that do not — quite apart from what a login wall in front of a free
+ * stream does to first-time listeners. Every tab renders signed out; the auth
+ * screens are ordinary routes reached from the Profile tab.
+ */
+function RootNavigator() {
+  const { initialising } = useAuth();
+
+  // Inside the navigator because tapping a notification navigates, and the
+  // router has to exist before that can be handled. Independent of auth: an
+  // emergency alert must reach a listener who never made an account.
+  useNotifications();
+
+  // Holding the splash until Auth has restored any persisted session avoids the
+  // Profile tab flashing its signed-out pitch at someone who is signed in.
+  useEffect(() => {
+    if (!initialising) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [initialising]);
+
+  if (initialising) return null;
+
+  return (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: Colors.background },
+      }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="(auth)/sign-in" options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="(auth)/sign-up" options={{ animation: 'slide_from_right' }} />
+      <Stack.Screen name="(auth)/forgot-password" options={{ animation: 'slide_from_right' }} />
+    </Stack>
+  );
+}
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
@@ -40,14 +84,6 @@ export default function RootLayout() {
     NotoSansDevanagari_700Bold,
   });
 
-  // Fonts are bundled locally, so this resolves in milliseconds. A font error
-  // must not trap the user on the splash screen — fall through to system faces.
-  useEffect(() => {
-    if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [fontsLoaded, fontError]);
-
   if (!fontsLoaded && !fontError) return null;
 
   return (
@@ -56,21 +92,12 @@ export default function RootLayout() {
         client={queryClient}
         persistOptions={{ persister, maxAge: PERSIST_MAX_AGE }}>
         <ThemeProvider value={theme}>
-          <PlayerProvider>
-            <StatusBar style="light" />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor: Colors.background },
-              }}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen
-                name="post/[id]"
-                options={{ presentation: 'card', animation: 'slide_from_right' }}
-              />
-              <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
-            </Stack>
-          </PlayerProvider>
+          <AuthProvider>
+            <PlayerProvider>
+              <StatusBar style="light" />
+              <RootNavigator />
+            </PlayerProvider>
+          </AuthProvider>
         </ThemeProvider>
       </PersistQueryClientProvider>
     </SafeAreaProvider>

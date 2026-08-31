@@ -6,7 +6,7 @@ import { AppText } from '@/components/ui/Text';
 import { Colors, MinTouchTarget, Spacing } from '@/theme';
 
 interface TabDef {
-  href: '/' | '/social' | '/news' | '/connect';
+  href: '/' | '/social' | '/news' | '/connect' | '/profile';
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   activeIcon: keyof typeof Ionicons.glyphMap;
@@ -17,6 +17,7 @@ const TABS: TabDef[] = [
   { href: '/social', label: 'Social', icon: 'play-circle-outline', activeIcon: 'play-circle' },
   { href: '/news', label: 'News', icon: 'newspaper-outline', activeIcon: 'newspaper' },
   { href: '/connect', label: 'Connect', icon: 'chatbubbles-outline', activeIcon: 'chatbubbles' },
+  { href: '/profile', label: 'Profile', icon: 'person-outline', activeIcon: 'person' },
 ];
 
 /**

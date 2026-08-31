@@ -1,13 +1,12 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import {
   collection,
-  doc,
-  getDoc,
   getDocs,
   limit,
   orderBy,
   query,
   startAfter,
+  Timestamp,
   where,
   type DocumentData,
   type QueryDocumentSnapshot,
@@ -30,7 +29,16 @@ function toPost(snapshot: QueryDocumentSnapshot<DocumentData>): Post {
 
 interface PostsPage {
   posts: Post[];
-  cursor: QueryDocumentSnapshot<DocumentData> | null;
+  /**
+   * Epoch millis of the last post's `publishedAt`, deliberately not the
+   * Firestore snapshot.
+   *
+   * A `QueryDocumentSnapshot` cursor is correct in memory but cannot survive
+   * the persisted cache: JSON.stringify reduces it to `{"bundle":"NOT
+   * SUPPORTED"}`, and handing that back to `startAfter()` throws on the first
+   * scroll past page one after a cold start. A plain number round-trips.
+   */
+  cursor: number | null;
 }
 
 /**
@@ -44,19 +52,18 @@ export function usePosts() {
     queryKey: ['posts', 'feed'],
     initialPageParam: null,
     queryFn: async ({ pageParam }) => {
-      const cursor = pageParam as QueryDocumentSnapshot<DocumentData> | null;
+      const cursor = pageParam as number | null;
       const constraints = [
         where('isPublished', '==', true),
         orderBy('publishedAt', 'desc'),
-        ...(cursor ? [startAfter(cursor)] : []),
+        ...(cursor != null ? [startAfter(Timestamp.fromMillis(cursor))] : []),
         limit(POSTS_PAGE_SIZE),
       ];
 
       const snapshot = await getDocs(query(collection(db, 'posts'), ...constraints));
-      return {
-        posts: snapshot.docs.map(toPost),
-        cursor: snapshot.docs.at(-1) ?? null,
-      };
+      const posts = snapshot.docs.map(toPost);
+      const last = posts.at(-1)?.publishedAt ?? null;
+      return { posts, cursor: last ? last.getTime() : null };
     },
     getNextPageParam: (lastPage) =>
       lastPage.posts.length < POSTS_PAGE_SIZE ? undefined : lastPage.cursor,
@@ -78,20 +85,6 @@ export function usePinnedPosts() {
         )
       );
       return snapshot.docs.map(toPost);
-    },
-  });
-}
-
-export function usePost(id: string | undefined) {
-  return useQuery<Post | null>({
-    queryKey: ['posts', 'detail', id],
-    enabled: !!id,
-    queryFn: async () => {
-      const snapshot = await getDoc(doc(db, 'posts', id!));
-      if (!snapshot.exists()) return null;
-      const data = snapshot.data() as PostDoc;
-      const { publishedAt, ...rest } = data;
-      return { ...rest, id: snapshot.id, publishedAt: publishedAt?.toDate() ?? null };
     },
   });
 }

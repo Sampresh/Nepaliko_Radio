@@ -11,8 +11,6 @@ const config = getDefaultConfig(__dirname);
 config.resolver.blockList = [
   /\/admin\/node_modules\/.*/,
   /\/admin\/dist\/.*/,
-  /\/functions\/node_modules\/.*/,
-  /\/functions\/lib\/.*/,
   /\/open-design\/.*/,
 ];
 

@@ -1,4 +1,4 @@
-import { addDoc, collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -22,17 +22,10 @@ export function PostsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const createDraft = async () => {
-    const created = await addDoc(collection(db, 'posts'), {
-      title: 'Untitled post',
-      isPublished: false,
-      isPinned: false,
-      language: 'en',
-      category: 'news',
-      publishedAt: null,
-    });
-    navigate(`/posts/${created.id}`);
-  };
+  // Straight to the editor rather than creating a stub first. A post is a link
+  // and a title; a placeholder document with neither would be rejected by the
+  // security rule, and would leave an "Untitled post" behind if abandoned.
+  const createDraft = () => navigate('/posts/new');
 
   if (loading) return <Spinner />;
 
@@ -41,9 +34,11 @@ export function PostsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">News</h1>
-          <p className="text-sm text-muted">{posts.length} posts</p>
+          <p className="text-sm text-muted">
+            {posts.length} {posts.length === 1 ? 'link' : 'links'}
+          </p>
         </div>
-        <Button onClick={createDraft}>New post</Button>
+        <Button onClick={createDraft}>New link</Button>
       </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}
@@ -52,12 +47,21 @@ export function PostsPage() {
         {posts.map((post) => (
           <Link key={post.id} to={`/posts/${post.id}`}>
             <Card className="flex items-center gap-4 transition hover:brightness-125">
-              {post.coverImageUrl && (
-                <img src={post.coverImageUrl} alt="" className="size-12 rounded object-cover" />
+              {post.thumbnailUrl && (
+                <img
+                  src={post.thumbnailUrl}
+                  alt=""
+                  className="size-12 rounded object-cover"
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none';
+                  }}
+                />
               )}
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium text-white">{post.title}</p>
-                <p className="text-xs text-muted">
+                <p className="truncate text-xs text-muted">
+                  {post.source ?? post.url}
+                  {' · '}
                   {post.publishedAt?.toDate().toLocaleDateString() ?? 'Not published'}
                 </p>
               </div>
@@ -73,7 +77,7 @@ export function PostsPage() {
 
         {!posts.length && !error && (
           <Card>
-            <p className="text-sm text-muted">No posts yet. Create the first one.</p>
+            <p className="text-sm text-muted">No links yet. Share the first one.</p>
           </Card>
         )}
       </div>

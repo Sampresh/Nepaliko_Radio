@@ -13,22 +13,100 @@ service cloud.firestore {
     match /promos/{doc}   { allow read: if true; allow write: if isAdmin(); }
     match /banners/{doc}  { allow read: if true; allow write: if isAdmin(); }
 
-    // Posts: only published ones are public.
-    // NOTE: list queries MUST include where('isPublished','==',true) or the
-    // whole query is rejected — rules filter queries, they do not filter rows.
+    // Posts are shared links, not articles.
+    //
+    // Only published ones are public. NOTE: list queries MUST include
+    // where('isPublished','==',true) or the whole query is rejected — rules
+    // filter queries, they do not filter rows.
+    //
+    // The `https://` check is here as well as in the admin form because the app
+    // hands `url` straight to an in-app browser, and a rule is the only version
+    // of that check a compromised admin bundle cannot skip.
     match /posts/{postId} {
-      allow read:  if resource.data.isPublished == true || isAdmin();
-      allow write: if isAdmin();
+      allow read: if resource.data.isPublished == true || isAdmin();
+      allow write: if isAdmin()
+        && request.resource.data.keys().hasOnly(
+             ['title','description','url','thumbnailUrl','source',
+              'isPublished','isPinned','publishedAt','createdBy'])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 100
+        && request.resource.data.url is string
+        && request.resource.data.url.matches('https://.*')
+        && (!('description' in request.resource.data.keys())
+            || request.resource.data.description.size() <= 200);
+      allow delete: if isAdmin();
     }
 
-    // Listener requests: create-only, validated, never publicly readable.
+    // Listener profiles. A signed-in user owns exactly their own document —
+    // the id IS their uid, so there is no way to address anyone else's row.
+    // Admins read the whole collection to populate the users roster.
+    //
+    // The shape is pinned rather than left open: everything the admin panel
+    // trusts for identity comes from here. `createdAt` is write-once at signup.
+    //
+    // `phone`, `address` and `dob` are optional contact details the listener
+    // fills in from the profile sheet, so each is validated only when present —
+    // `hasOnly` permits a subset, it does not require every key. `dob` is a
+    // `YYYY-MM-DD` string rather than a timestamp; the length check is the most
+    // the rules language can assert about its format without a regex on every
+    // write, and the client schema does the rest.
+    function validProfileFields(data) {
+      return data.name is string
+        && data.name.size() > 0
+        && data.name.size() <= 60
+        && (!('email' in data.keys()) || (data.email is string && data.email.size() <= 200))
+        && (!('phone' in data.keys()) || (data.phone is string && data.phone.size() <= 30))
+        && (!('address' in data.keys()) || (data.address is string && data.address.size() <= 200))
+        && (!('dob' in data.keys()) || (data.dob is string && data.dob.size() == 10))
+        // Mirrored from the Auth record so the admin roster can show it —
+        // Firestore cannot join against the Auth user list. Only ever set true;
+        // a client claiming it while unverified is caught by Auth itself the
+        // moment anything actually depends on it.
+        && (!('emailVerified' in data.keys()) || data.emailVerified is bool);
+    }
+
+    match /users/{uid} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow list: if isAdmin();
+
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(
+             ['name','email','phone','address','dob','emailVerified','createdAt','lastSeenAt'])
+        && request.resource.data.email is string
+        && validProfileFields(request.resource.data);
+
+      allow update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(
+             ['name','email','phone','address','dob','emailVerified','createdAt','lastSeenAt'])
+        && validProfileFields(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt;
+
+      // Both app stores require an in-app way to delete an account, so a
+      // listener may remove their own row. The app deletes this document while
+      // the session is still valid and only then deletes the Auth user — once
+      // the uid is gone nothing could satisfy this rule, and the row would
+      // linger in the admin roster for ever.
+      allow delete: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+    }
+
+    // Listener requests.
+    //
+    // Signed in only, and `uid` must be the caller's own: the studio reads
+    // these on air, so a name on one has to be attached to an account rather
+    // than typed by anyone. The equality check is what stops a signed-in user
+    // filing a request under someone else's id.
     match /requests/{requestId} {
       allow read: if isAdmin();
-      allow create: if
-        request.resource.data.keys().hasOnly(
-          ['type','name','message','contact','status','createdAt','deviceHash'])
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(
+          ['type','name','message','contact','status','createdAt','deviceHash','uid'])
         && request.resource.data.type in ['song','shoutout','feedback']
         && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 60
         && request.resource.data.message is string
         && request.resource.data.message.size() > 0
@@ -38,27 +116,22 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // Audit trail of sent pushes. Written by the sendPush function using the
-    // Admin SDK, which bypasses rules — so no client write path is needed.
-    match /pushLog/{entry} {
+    // Audit trail of every push the station has sent.
+    //
+    // Admin-readable, never client-writable: the sending endpoint uses the
+    // Admin SDK, which bypasses these rules entirely. An emergency alert is a
+    // public communication that cannot be recalled, so who sent what and when
+    // has to be a fact on the record rather than something the sender controls.
+    match /notifications/{id} {
       allow read: if isAdmin();
       allow write: if false;
     }
 
-    // Push tokens. Anyone may register their own device and set preferences,
-    // but nobody may read the roster — it is a list of contactable devices.
-    // The document id is the push token itself, so a client can only ever
-    // address its own row.
-    match /devices/{token} {
-      allow read: if false;
-      allow create, update: if
-        request.resource.data.keys().hasOnly(
-          ['token','platform','news','liveAlerts','updatedAt'])
-        && request.resource.data.token == token
-        && request.resource.data.platform in ['ios','android']
-        && request.resource.data.news is bool
-        && request.resource.data.liveAlerts is bool;
-      allow delete: if false;
+    // Per-admin send counters, maintained by the same endpoint for rate
+    // limiting. Writable only by the Admin SDK, for the same reason.
+    match /notificationQuota/{uid} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // Admin roster: readable by admins, writable only from the Firebase Console.

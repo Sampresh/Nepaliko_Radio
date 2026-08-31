@@ -10,6 +10,8 @@ const NAV = [
   { to: '/promos', label: 'Promos' },
   { to: '/links', label: 'Links' },
   { to: '/requests', label: 'Requests' },
+  { to: '/notifications', label: 'Notifications' },
+  { to: '/users', label: 'Users' },
 ];
 
 export function Layout() {

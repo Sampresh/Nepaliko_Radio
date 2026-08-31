@@ -8,6 +8,7 @@ import { LiveIndicator } from '@/components/player/LiveIndicator';
 import { PlayerActions } from '@/components/player/PlayerActions';
 import { PlayPauseButton } from '@/components/player/PlayPauseButton';
 import { StationArtwork } from '@/components/player/StationArtwork';
+import { ProfileButton } from '@/components/profile/ProfileButton';
 import { Waveform } from '@/components/player/Waveform';
 import { AppText } from '@/components/ui/Text';
 import { usePlayer } from '@/features/player/PlayerProvider';
@@ -68,6 +69,7 @@ export default function ListenScreen() {
               label="Settings"
               onPress={() => router.push('/settings')}
             />
+            <ProfileButton />
           </View>
         </View>
 

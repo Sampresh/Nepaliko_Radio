@@ -21,3 +21,16 @@ export function initMonitoring() {
 }
 
 export const wrapRootComponent = dsn ? Sentry.wrap : <T,>(component: T) => component;
+
+/**
+ * Reports a failure that the app deliberately swallowed.
+ *
+ * For paths where degrading quietly is the right product behaviour but silence
+ * would hide a real misconfiguration — a security rule that rejects a write,
+ * say — the user sees nothing and this is the only trace left.
+ */
+export function captureError(error: unknown, context: string) {
+  if (__DEV__) console.warn(`[${context}]`, error);
+  if (!dsn) return;
+  Sentry.captureException(error, { tags: { context } });
+}

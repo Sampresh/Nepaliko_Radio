@@ -11,10 +11,10 @@ import { usePlayer } from '@/features/player/PlayerProvider';
 import {
   DEFAULT_PREFS,
   loadPrefs,
-  registerForPush,
-  savePrefs,
-  updateDevicePrefs,
+  requestPermission,
+  setTopicEnabled,
   type NotificationPrefs,
+  type Topic,
 } from '@/services/notifications';
 import { Colors, MinTouchTarget, Radius, Spacing } from '@/theme';
 
@@ -24,26 +24,32 @@ export default function SettingsScreen() {
   const { config, autoplay, setAutoplay } = usePlayer();
 
   const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
-  const [token, setToken] = useState<string | null>(null);
+  // Null while we are still asking the OS; the note below waits on a real answer
+  // rather than flashing "not active" at everyone on the way in.
+  const [granted, setGranted] = useState<boolean | null>(null);
 
   useEffect(() => {
-    loadPrefs().then(async (stored) => {
-      setPrefs(stored);
-      setToken(await registerForPush(stored));
-    });
+    loadPrefs().then(setPrefs);
+    requestPermission().then(setGranted);
   }, []);
 
-  const toggle = async (key: keyof NotificationPrefs, value: boolean) => {
-    const next = { ...prefs, [key]: value };
-    setPrefs(next);
-    await savePrefs(next);
+  const toggle = async (topic: Topic, value: boolean) => {
+    // Optimistic: the switch answers the tap, and FCM catches up. A failed
+    // subscribe is reasserted from the stored preference on the next launch.
+    setPrefs((current) => ({ ...current, [topic]: value }));
 
-    // Register on first opt-in; otherwise just update the existing row.
-    if (token) {
-      await updateDevicePrefs(token, next);
-    } else if (value) {
-      setToken(await registerForPush(next));
+    // Turning something on when permission was refused would be a lie — the
+    // toggle would sit there enabled and nothing would ever arrive.
+    if (value && granted === false) {
+      const now = await requestPermission();
+      setGranted(now);
+      if (!now) {
+        setPrefs((current) => ({ ...current, [topic]: false }));
+        return;
+      }
     }
+
+    setPrefs(await setTopicEnabled({ ...prefs, [topic]: value }, topic, value));
   };
 
   const version = Constants.expoConfig?.version ?? '1.0.0';
@@ -77,21 +83,43 @@ export default function SettingsScreen() {
 
         <Section title="NOTIFICATIONS">
           <Row
-            label="Station news"
-            hint="New posts and announcements"
+            label="Emergency alerts"
+            hint="Official earthquake, flood and public-safety warnings"
+            value={prefs.alerts}
+            onChange={(v) => toggle('alerts', v)}
+          />
+          {/*
+            Stated plainly rather than hidden behind a confirmation. Someone who
+            wants this off should be able to turn it off — they just need to
+            know what they are turning off.
+          */}
+          {!prefs.alerts && (
+            <View style={styles.warning}>
+              <Ionicons name="warning-outline" size={16} color={Colors.warning} />
+              <AppText variant="caption" color={Colors.warning} style={styles.warningText}>
+                With this off you will not receive emergency broadcasts from this app. Always
+                follow instructions from local authorities.
+              </AppText>
+            </View>
+          )}
+
+          <Row
+            label="Station announcements"
+            hint="When we go live, and schedule changes"
+            value={prefs.all}
+            onChange={(v) => toggle('all', v)}
+          />
+          <Row
+            label="New posts"
+            hint="A notification each time an article is published"
             value={prefs.news}
             onChange={(v) => toggle('news', v)}
           />
-          <Row
-            label="Live alerts"
-            hint="When a special broadcast starts"
-            value={prefs.liveAlerts}
-            onChange={(v) => toggle('liveAlerts', v)}
-          />
-          {!token && (prefs.news || prefs.liveAlerts) && (
+
+          {granted === false && (
             <AppText variant="caption" color={Colors.textSecondary} style={styles.note}>
-              Notifications are not active on this device. They need a real device and
-              notification permission.
+              Notifications are blocked for this app. Turn them on in your phone&apos;s settings to
+              receive them.
             </AppText>
           )}
         </Section>
@@ -101,6 +129,17 @@ export default function SettingsScreen() {
             <AppText variant="body">{config?.stationName ?? 'Nepaliko Radio'}</AppText>
             <AppText variant="small" color={Colors.textSecondary}>
               {config?.tagline ?? '88.8 MHz FM · Kathmandu'}
+            </AppText>
+          </View>
+
+          {/*
+            Sets the expectation that this app relays advisories rather than
+            issuing them, and that it is never the authority of last resort.
+          */}
+          <View style={styles.aboutRow}>
+            <AppText variant="small" color={Colors.textSecondary}>
+              Emergency alerts relay official government advisories. Always follow instructions
+              from local authorities.
             </AppText>
           </View>
 
@@ -220,6 +259,16 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.7,
+  },
+  warning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
+  warningText: {
+    flex: 1,
   },
   note: {
     paddingBottom: Spacing.md,

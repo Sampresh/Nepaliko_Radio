@@ -15,21 +15,27 @@ export interface RadioConfig {
   updatedAt?: Timestamp;
 }
 
-export type PostCategory = 'news' | 'music' | 'event' | 'announcement';
-
-/** `posts/{postId}` as stored. */
+/**
+ * `posts/{postId}` — a shared link, not an article.
+ *
+ * News is a link-sharing tool: the station pastes a URL, adds a title, and it
+ * renders as a card that opens in an in-app browser. There is deliberately no
+ * body, no Markdown and no detail screen — the destination is the content, and
+ * a half-built CMS in front of it only creates work.
+ */
 export interface PostDoc {
   title: string;
-  slug?: string;
-  excerpt?: string;
-  body?: string;
-  coverImageUrl?: string;
-  category?: PostCategory;
-  language?: ContentLanguage;
+  description?: string;
+  /** Always `https://`. Enforced by the admin form and the security rules. */
+  url: string;
+  thumbnailUrl?: string;
+  /** Hostname derived from `url` at save time, e.g. `youtube.com`. */
+  source?: string;
   isPublished: boolean;
   isPinned?: boolean;
   publishedAt?: Timestamp;
-  authorName?: string;
+  /** The admin uid that created it. */
+  createdBy?: string;
 }
 
 /** A post normalised for the UI — `publishedAt` is a real Date. */
@@ -78,4 +84,35 @@ export interface StationLink {
   icon?: string;
   order?: number;
   isActive: boolean;
+}
+
+/**
+ * `users/{uid}` — a listener's profile, keyed by their Firebase Auth uid.
+ *
+ * Deliberately mirrors only what the app collects at signup plus what the admin
+ * roster needs to display. The email is duplicated here from the Auth record
+ * because Firestore cannot join against Auth: the admin panel lists users by
+ * reading this collection, and a uid alone would be unreadable.
+ */
+export interface UserProfileDoc {
+  name: string;
+  email: string;
+  /** Contact number, free-form so international formats survive unchanged. */
+  phone?: string;
+  address?: string;
+  /**
+   * Date of birth as `YYYY-MM-DD`, not a `Timestamp`. A birthday is a calendar
+   * date, and storing it as an instant would shift it across time zones — the
+   * admin panel in Kathmandu would show a different day than the listener's.
+   */
+  dob?: string;
+  createdAt?: Timestamp;
+  lastSeenAt?: Timestamp;
+}
+
+/** A profile normalised for the UI — timestamps are real Dates. */
+export interface UserProfile extends Omit<UserProfileDoc, 'createdAt' | 'lastSeenAt'> {
+  id: string;
+  createdAt: Date | null;
+  lastSeenAt: Date | null;
 }

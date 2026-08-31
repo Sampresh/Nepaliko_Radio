@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
-import { PromoCard } from '@/components/content/PromoCard';
+import { VideoHeroCard, VideoRow } from '@/components/content/VideoCard';
 import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/States';
 import { AppText } from '@/components/ui/Text';
 import { usePromos } from '@/features/content/usePromos';
+import { useYouTubeFeed } from '@/features/content/useYouTubeFeed';
 import { Colors, MinTouchTarget, Radius, ScrollBottomInset, Spacing } from '@/theme';
 import type { Promo, PromoPlatform } from '@/types/firestore';
 
@@ -20,68 +21,99 @@ const PLATFORM: Record<PromoPlatform, { icon: keyof typeof Ionicons.glyphMap; la
   website: { icon: 'globe-outline', label: 'Website' },
 };
 
+/**
+ * The station's feed: every recent upload across its YouTube channels, newest
+ * first, over the admin-managed row of social links.
+ *
+ * The video list is the screen's primary content, so it owns the loading,
+ * error and empty states. The "follow us" row is chrome that renders only when
+ * Firestore has links to show — it must never be the reason the feed is
+ * hidden.
+ */
 export default function SocialScreen() {
-  const { data: promos, isLoading, isError, refetch } = usePromos();
+  const feed = useYouTubeFeed();
+  const promos = usePromos();
 
-  const socials = promos?.filter((promo) => promo.kind === 'social') ?? [];
-  const videos = promos?.filter((promo) => promo.kind !== 'social') ?? [];
+  const socials = promos.data?.filter((promo) => promo.kind === 'social') ?? [];
+  const videos = feed.data ?? [];
 
-  return (
-    <Screen title="Social" subtitle="Follow the station">
-      {isError ? (
-        <ErrorState
-          title="Could not load"
-          message="Check your connection and try again."
-          actionLabel="Retry"
-          onAction={refetch}
-        />
-      ) : isLoading ? (
+  const refresh = () => {
+    feed.refetch();
+    promos.refetch();
+  };
+
+  if (feed.isLoading) {
+    return (
+      <Screen title="Nepaliko Radio" subtitle="Latest from our channels">
         <View style={styles.loading}>
-          <Skeleton height={92} radius={Radius.card} />
+          <Skeleton height={200} radius={Radius.card} />
           <Skeleton height={88} radius={Radius.card} />
           <Skeleton height={88} radius={Radius.card} />
         </View>
-      ) : !promos?.length ? (
-        <EmptyState
-          icon="share-social-outline"
-          title="Nothing here yet"
-          message="The station has not added any channels or videos."
-        />
-      ) : (
-        <ScrollView
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}>
-          {socials.length > 0 && (
-            <View style={styles.block}>
-              <AppText variant="caption" weight="semibold" color={Colors.textSecondary}>
-                FOLLOW US
-              </AppText>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.iconRow}>
-                {socials.map((promo) => (
-                  <SocialIcon key={promo.id} promo={promo} />
-                ))}
-              </ScrollView>
-            </View>
-          )}
+      </Screen>
+    );
+  }
 
-          {videos.length > 0 && (
-            <View style={styles.block}>
-              <AppText variant="caption" weight="semibold" color={Colors.textSecondary}>
-                WATCH
-              </AppText>
-              <View style={styles.videoGrid}>
-                {videos.map((promo) => (
-                  <PromoCard key={promo.id} promo={promo} />
-                ))}
-              </View>
-            </View>
-          )}
-        </ScrollView>
-      )}
+  if (feed.isError) {
+    return (
+      <Screen title="Nepaliko Radio" subtitle="Latest from our channels">
+        <ErrorState
+          title="Could not load videos"
+          message="Check your connection and try again."
+          actionLabel="Retry"
+          onAction={refresh}
+        />
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen title="Nepaliko Radio" subtitle="Latest from our channels">
+      <FlatList
+        data={videos}
+        keyExtractor={(video) => video.id}
+        renderItem={({ item, index }) =>
+          index === 0 ? <VideoHeroCard video={item} /> : <VideoRow video={item} />
+        }
+        contentContainerStyle={styles.list}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={feed.isRefetching}
+            onRefresh={refresh}
+            tintColor={Colors.textSecondary}
+          />
+        }
+        ListHeaderComponent={socials.length > 0 ? <FollowRow socials={socials} /> : null}
+        ListEmptyComponent={
+          <EmptyState
+            icon="videocam-outline"
+            title="No videos yet"
+            message="New uploads from the station's channels will appear here."
+          />
+        }
+      />
     </Screen>
+  );
+}
+
+/** Horizontal row of the station's presence on other platforms. */
+function FollowRow({ socials }: { socials: Promo[] }) {
+  return (
+    <View style={styles.followBlock}>
+      <AppText variant="caption" weight="semibold" color={Colors.textSecondary}>
+        FOLLOW US
+      </AppText>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.iconRow}>
+        {socials.map((promo) => (
+          <SocialIcon key={promo.id} promo={promo} />
+        ))}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -118,13 +150,18 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     paddingHorizontal: Spacing.xl,
   },
-  content: {
-    paddingBottom: ScrollBottomInset,
-    gap: Spacing.xxl,
-  },
-  block: {
-    gap: Spacing.md,
+  list: {
     paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.sm,
+    paddingBottom: ScrollBottomInset,
+    flexGrow: 1,
+  },
+  separator: {
+    height: Spacing.md,
+  },
+  followBlock: {
+    gap: Spacing.md,
+    paddingBottom: Spacing.xl,
   },
   iconRow: {
     gap: Spacing.lg,
@@ -148,8 +185,5 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.65,
-  },
-  videoGrid: {
-    gap: Spacing.md,
   },
 });

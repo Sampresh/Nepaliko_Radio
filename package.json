@@ -34,7 +34,6 @@
     "expo-system-ui": "~57.0.2",
     "expo-web-browser": "~57.0.2",
     "firebase": "^12.17.0",
-    "marked": "^18.0.7",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.84.0",
@@ -68,7 +67,9 @@
   "private": true,
   "jest": {
     "preset": "jest-expo",
-    "setupFilesAfterEnv": [],
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.js"
+    ],
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg)"
     ],
@@ -78,7 +79,7 @@
     "testPathIgnorePatterns": [
       "/node_modules/",
       "/admin/",
-      "/functions/",
+      "/server/",
       "/open-design/"
     ]
   }

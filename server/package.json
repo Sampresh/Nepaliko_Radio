@@ -1,0 +1,19 @@
+{
+  "name": "nepaliko-radio-notify",
+  "private": true,
+  "description": "The one server endpoint: sends a push notification to an FCM topic.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "smoke": "tsx smoke.mts"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.6.0",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@vercel/node": "^5.1.0",
+    "tsx": "^4.19.2",
+    "typescript": "~5.9.2"
+  }
+}
